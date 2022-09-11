@@ -1,7 +1,8 @@
 name: wordstonumbers
 description: A Dart package that can be used to convert words to numbers
 version: 0.1.0
-homepage:
+repository: https://github.com/michaelessiet/wordstonumbers.dart
+homepage: https://github.com/michaelessiet/wordstonumbers.dart
 
 environment:
   sdk: ">=2.17.6 <3.0.0"
@@ -10,8 +11,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  edit_distance: ^0.4.1
-  flutter_js: ^0.5.0+6
 
 dev_dependencies:
   flutter_test:
@@ -25,8 +24,7 @@ dev_dependencies:
 flutter:
 
   # To add assets to your package, add an assets section, like this:
-  assets:
-    - assets/w2n/wordstonumbers/index.js
+  # assets:
   #   - images/a_dot_ham.jpeg
   #
   # For details regarding assets in packages, see
