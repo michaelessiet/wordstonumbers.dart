@@ -8,7 +8,8 @@ List a = [];
 num wordsToNumbers(
   String text,
 ) {
-  String formattedtext = text.split(' ').where((element) => element != 'and').join(' ');
+  String formattedtext =
+      text.split(' ').where((element) => element != 'and').join(' ');
   a = formattedtext.split(RegExp(r'[\s-]+'));
   n = 0;
   g = 0;

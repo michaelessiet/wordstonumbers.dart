@@ -11,7 +11,10 @@ void main() {
     expect(wordsToNumbers('nine hundred twenty'), 920);
   });
   test('4,690,289', () {
-    expect(wordsToNumbers('four million six hundred and ninety thousand two hundred and eighty nine'), 4690289);
+    expect(
+        wordsToNumbers(
+            'four million six hundred and ninety thousand two hundred and eighty nine'),
+        4690289);
   });
   test('four hundred and eighty thousand', () {
     expect(wordsToNumbers('four hundred eighty thousand'), 480000);
@@ -21,5 +24,8 @@ void main() {
   });
   test('seventeen', () {
     expect(wordsToNumbers('seventeen'), 17);
+  });
+  test('seventy two', () {
+    expect('seventy two'.w2n(), 72);
   });
 }

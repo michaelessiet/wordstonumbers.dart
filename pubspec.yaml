@@ -1,6 +1,6 @@
 name: wordstonumbers
 description: A Dart package that can be used to convert words to numbers
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/michaelessiet/wordstonumbers.dart
 homepage: https://github.com/michaelessiet/wordstonumbers.dart
 
