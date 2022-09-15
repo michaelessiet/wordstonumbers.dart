@@ -1,3 +1,5 @@
 ## 0.1.0
+Initial release of package
 
-* TODO: Describe initial release.
+## 0.1.1
+Added string extension method
