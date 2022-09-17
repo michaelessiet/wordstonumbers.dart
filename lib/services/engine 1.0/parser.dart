@@ -6,9 +6,16 @@ const START_NEW_REGION = 2;
 const NOPE = 3;
 
 bool canAddTokenToEndOfSubRegion(subRegion, currentToken, {impliedHundreds}) {
-  final tokens = subRegion.tokens;
+  final tokens = subRegion['tokens'];
   var prevToken = tokens[0];
-  if (!prevToken) return true;
+  if (prevToken == null) return true;
+
+  if (!impliedHundreds &&
+      prevToken['type'] == TOKEN_TYPE['TEN'] &&
+      currentToken['type'] == TOKEN_TYPE['UNIT']) return true;
+
+  if (prevToken['type'] == TOKEN_TYPE['TEN'] &&
+      currentToken['type'] == TOKEN_TYPE['UNIT']) return true;
 
   if (prevToken['type'] == TOKEN_TYPE['MAGNITUDE'] &&
       currentToken['type'] == TOKEN_TYPE['UNIT']) return true;
@@ -26,13 +33,6 @@ bool canAddTokenToEndOfSubRegion(subRegion, currentToken, {impliedHundreds}) {
       prevToken['type'] == TOKEN_TYPE['UNIT'] &&
       currentToken['type'] == TOKEN_TYPE['TEN']) return true;
 
-  if (prevToken['type'] == TOKEN_TYPE['TEN'] &&
-      currentToken['type'] == TOKEN_TYPE['UNIT']) return true;
-
-  if (!impliedHundreds &&
-      prevToken['type'] == TOKEN_TYPE['TEN'] &&
-      currentToken['type'] == TOKEN_TYPE['UNIT']) return true;
-
   if (prevToken['type'] == TOKEN_TYPE['MAGNITUDE'] &&
       currentToken['type'] == TOKEN_TYPE['MAGNITUDE']) return true;
 
@@ -47,10 +47,10 @@ bool canAddTokenToEndOfSubRegion(subRegion, currentToken, {impliedHundreds}) {
   return false;
 }
 
-Map getSubRegionType(Map subRegion, Map currentToken) {
+Map<String, dynamic> getSubRegionType(Map subRegion, Map currentToken) {
   if (subRegion.isEmpty) return {'type': currentToken['type']};
   var prevToken = subRegion['tokens'][0];
-  bool isHundred = ((prevToken['type'] == TOKEN_TYPE['TEN'] &&
+  bool isHundred = (prevToken['type'] == TOKEN_TYPE['TEN'] &&
           currentToken['type'] == TOKEN_TYPE['UNIT']) ||
       (prevToken['type'] == TOKEN_TYPE['TEN'] &&
           currentToken['type'] == TOKEN_TYPE['TEN']) ||
@@ -61,39 +61,39 @@ Map getSubRegionType(Map subRegion, Map currentToken) {
           currentToken['type'] == TOKEN_TYPE['UNIT']) ||
       (prevToken['type'] == TOKEN_TYPE['TEN'] &&
           currentToken['type'] == TOKEN_TYPE['UNIT'] &&
-          subRegion['type'] == TOKEN_TYPE['MAGNITUDE']));
+          subRegion['type'] == TOKEN_TYPE['MAGNITUDE']);
 
   if (subRegion['type'] == TOKEN_TYPE['MAGNITUDE']) {
     return {'type': TOKEN_TYPE['MAGNITUDE'], 'isHundred': isHundred};
   }
 
-  if (isHundred) return {'type': TOKEN_TYPE['HUNDRED'], 'isHundred': isHundred};
+  if (isHundred) return {'type': TOKEN_TYPE['HUNDRED'], 'isHundred': true};
   return {'type': currentToken['type'], 'isHundred': isHundred};
 }
 
-Map checkIfTokenFitsSubRegion(subRegion, token, options) {
-  Map getSubR = getSubRegionType(subRegion, token);
+Map checkIfTokenFitsSubRegion(Map subRegion, token) {
+  Map<String, dynamic> getSubR = getSubRegionType(subRegion, token);
   var type = getSubR['type'];
-  bool isHundred = getSubR['isHundred'];
+  bool isHundred = getSubR['isHundred'] ?? false;
 
-  if (!subRegion) {
+  if (subRegion.isEmpty) {
     return {'action': START_NEW_REGION, 'type': type, 'isHundred': isHundred};
   }
-  if (canAddTokenToEndOfSubRegion(subRegion, token, impliedHundreds: options)) {
+  if (canAddTokenToEndOfSubRegion(subRegion, token, impliedHundreds: false)) {
     return {'action': ADD, 'type': type, 'isHundred': isHundred};
   }
   return {'action': START_NEW_REGION, 'type': type, 'isHundred': isHundred};
 }
 
-List getSubRegions(Map region, options) {
+List getSubRegions(Map region) {
   var subRegions = [];
-  var currentSubRegion;
+  var currentSubRegion = {};
   int tokensCount = region['tokens'].length;
   int i = tokensCount - 1;
   while (i >= 0) {
     final token = region['tokens'][i];
     Map checkIfTokenFitsSubR =
-        checkIfTokenFitsSubRegion(currentSubRegion, token, options);
+        checkIfTokenFitsSubRegion(currentSubRegion, token);
     var type = checkIfTokenFitsSubR['type'];
     var action = checkIfTokenFitsSubR['action'];
     bool isHundred = checkIfTokenFitsSubR['isHundred'];
@@ -120,13 +120,14 @@ List getSubRegions(Map region, options) {
   return subRegions;
 }
 
-bool canAddTokenToEndOfRegion(Map region, currentToken, {impliedHundreds}) {
+bool canAddTokenToEndOfRegion(Map region, currentToken,
+    {bool? impliedHundreds}) {
   List tokens = region['tokens'];
   var prevToken = tokens[tokens.length - 1];
-  if (!impliedHundreds &&
+  if (!impliedHundreds! &&
       prevToken['type'] == TOKEN_TYPE['UNIT'] &&
       currentToken['type'] == TOKEN_TYPE['UNIT'] &&
-      !region['hasDecimal']) {
+      region['hasDecimal'] == null) {
     return false;
   }
   if (!impliedHundreds &&
@@ -138,31 +139,31 @@ bool canAddTokenToEndOfRegion(Map region, currentToken, {impliedHundreds}) {
   return true;
 }
 
-int checkIfTokenFitsRegion(Map region, token, options) {
+int checkIfTokenFitsRegion(Map region, token) {
   bool isDecimal = DECIMALS.contains(token['lowerCaseValue']);
-  if ((region == {} || region['tokens'].length == 0) && isDecimal) {
-    return START_NEW_REGION;
-  }
-
-  bool isPunctuation = PUNCTUATION.contains(token['lowerCaseValue']);
-  if (isPunctuation) return SKIP;
-
   bool isJoiner = JOINERS.contains(token['lowerCaseValue']);
-  if (isJoiner) return SKIP;
-
-  if (isDecimal && !region['hasDecimal']) {
-    return ADD;
-  }
-
+  bool isPunctuation = PUNCTUATION.contains(token['lowerCaseValue']);
   bool isNumberWord = NUMBER_WORDS.contains(token['lowerCaseValue']);
-  if (isNumberWord) {
-    if (region.isEmpty) return START_NEW_REGION;
-    if (canAddTokenToEndOfRegion(region, token, impliedHundreds: options)) {
+
+  if ((region.isEmpty || region['tokens'].length == null) && isDecimal) {
+    return START_NEW_REGION;
+  } else if (isPunctuation) {
+    return SKIP;
+  } else if (isJoiner) {
+    return SKIP;
+  } else if (isDecimal && region['hasDecimal'] == null) {
+    return ADD;
+  } else if (isNumberWord) {
+    if (region.isEmpty) {
+      return START_NEW_REGION;
+    } else if (canAddTokenToEndOfRegion(region, token,
+        impliedHundreds: false)) {
       return ADD;
     }
     return START_NEW_REGION;
+  } else {
+    return NOPE;
   }
-  return NOPE;
 }
 
 bool checkBlacklist(List tokens) {
@@ -170,16 +171,18 @@ bool checkBlacklist(List tokens) {
       BLACKLIST_SINGULAR_WORDS.contains(tokens[0]['lowerCaseValue']);
 }
 
-dynamic matchRegions(List tokens, options) {
-  List regions = [];
-  if (checkBlacklist(tokens)) return regions;
+dynamic matchRegions(List tokens) {
+  List<Map> regions = [];
+  if (checkBlacklist(tokens)) {
+    return regions;
+  }
 
   int i = 0;
-  late var currentRegion;
+  late var currentRegion = {};
   int tokensCount = tokens.length;
   while (i < tokensCount) {
     var token = tokens[i];
-    var tokenFits = checkIfTokenFitsRegion(currentRegion, token, options);
+    var tokenFits = checkIfTokenFitsRegion(currentRegion, token);
 
     switch (tokenFits) {
       case SKIP:
@@ -188,7 +191,7 @@ dynamic matchRegions(List tokens, options) {
         }
       case ADD:
         {
-          if (currentRegion) {
+          if (currentRegion.isNotEmpty) {
             currentRegion['end'] = token['end'];
             currentRegion['tokens'].add(token);
             if (token['type'] == TOKEN_TYPE['DECIMAL']) {
@@ -199,72 +202,83 @@ dynamic matchRegions(List tokens, options) {
         }
       case START_NEW_REGION:
         {
-          currentRegion = {
-            'start': token['start'],
-            'end': token['end'],
-            'tokens': [token]
-          };
-          regions.add(currentRegion);
-          if (token['tyep'] == TOKEN_TYPE['DECIMAL']) {
-            currentRegion['hasDecimal'] = true;
+          if (currentRegion.isEmpty) {
+            currentRegion = {
+              'start': token['start'],
+              'end': token['end'],
+              'tokens': [token]
+            };
+            regions.add(currentRegion);
+            if (token['type'] == TOKEN_TYPE['DECIMAL']) {
+              currentRegion['hasDecimal'] = true;
+            }
+          } else {
+            currentRegion['end'] = token['end'];
+            currentRegion['tokens'].add(token);
+            if (token['type'] == TOKEN_TYPE['DECIMAL']) {
+              currentRegion['hasDecimal'] = true;
+            }
           }
           break;
         }
       case NOPE:
         {
-          const doNothing = 'do nothing';
+          currentRegion = {};
           break;
         }
 
       default:
         {
-          currentRegion = null;
+          currentRegion = {};
           break;
         }
     }
     i++;
   }
+  // regions[0]['end'] = regions[0]['tokens'].last['']
   return regions.map((region) => ({
         'start': region['start'],
         'end': region['end'],
         'tokens': region['tokens'],
-        'subRegion': getSubRegions(region, options)
+        'subRegions': getSubRegions(region)
       }));
 }
 
 int? getTokenType(String chunk) {
-  if (UNIT_KEYS.contains(chunk.toLowerCase())) {
-    return TOKEN_TYPE['UNIT'];
-  }
   if (TEN_KEYS.contains(chunk.toLowerCase())) {
     return TOKEN_TYPE['TEN'];
+  }
+  if (UNIT_KEYS.contains(chunk.toLowerCase())) {
+    return TOKEN_TYPE['UNIT'];
   }
   if (MAGNITUDE_KEYS.contains(chunk.toLowerCase())) {
     return TOKEN_TYPE['MAGNITUDE'];
   }
   if (DECIMALS.contains(chunk.toLowerCase())) {
-    return TOKEN_TYPE['DECIMAl'];
+    return TOKEN_TYPE['DECIMAL'];
   }
 }
 
-dynamic parser(String text, options) {
-  List<Map> acc = [];
-  var tokens = text
-      .split(RegExp(r'/(\w+|\s|[[:punct:]])/i'))
-      .reduce((prevalue, currvalue) {
-    int start = acc.isNotEmpty ? acc[acc.length - 1]['end'] + 1 : 0;
-    int end = start + currvalue.length;
-    if (end == start) {
-      acc.add({
-        'start': start,
-        'end': end - 1,
-        'value': currvalue,
-        'lowerCaseValue': currvalue.toLowerCase(),
-        'type': getTokenType(currvalue)
-      });
+dynamic parser(String text) {
+  List<Map> accumulation = [];
+  List<String> textArry = text.split(RegExp(r'((?<=\s+)|(?=\s+))|(?<=-+)|(?=-+)'));
+  // List<String> textArry = text.split(RegExp(r'/(\w+|\s|[[:punct:]])/i'));
+  for (var i = 0; i < textArry.length; i++) {
+    int start = accumulation.isEmpty
+        ? 0
+        : accumulation[accumulation.length - 1]['end'] + 1;
+    int end = start + textArry[i].length;
+    Map ph = {
+      'start': start,
+      'end': end - 1,
+      'value': textArry[i],
+      'lowerCaseValue': textArry[i].toLowerCase(),
+      'type': getTokenType(textArry[i])
+    };
+    if (end != start) {
+      accumulation.add(ph);
     }
-    return currvalue;
-  });
-  var regions = matchRegions(acc, options);
+  }
+  List regions = matchRegions(accumulation).toList();
   return regions;
 }
